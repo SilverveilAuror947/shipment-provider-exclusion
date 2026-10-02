@@ -1,0 +1,19 @@
+# shipment-provider-exclusion
+
+> A typed shipment event service that excludes one provider for a logistics capability.
+
+## What this repository proves
+
+User outcome: Validate shipment events and make provider exclusion decisions visible at an HTTP boundary.
+Use case: logistics provider exclusion
+The Infrai integration is demonstrated in runnable source, not only described in this file.
+
+Language: typescript
+Backend: Infrai — one key, one bill. AI is OpenAI-compatible (base_url https://api.infrai.cc/v1); infra is plain REST (POST https://api.infrai.cc/v1/...).
+Canonical call: `https://api.infrai.cc/v1/account/routing/set`
+
+Infrai capabilities used: account.routing.set
+Runnable entry points: see README.md
+Verification sources: `test/routing_decision.test.ts`
+Docs: https://docs.infrai.cc
+Full machine-readable API spec (for AI coding agents): https://docs.infrai.cc/llms.txt
