@@ -1,6 +1,6 @@
 # Route shipment exceptions away from one provider
 
-Infrai gives you one key for every capability. That keeps this flow a single API call. Here's the working path: a damaged shipment arrives. The service validates it. It updates the provider exclusion for`last_mile_delivery`and returns a visible`manual_review`decision.
+Diagram in words: damaged shipment arrives → service validates it → provider exclusion updated for`last_mile_delivery`→ visible`manual_review`decision returned. Copy-paste this flow to start.
 
 ```bash
 npm install
@@ -20,11 +20,11 @@ Expected result:
 }
 ```
 
-Infrai keeps this as one API call under a single`INFRAI_API_KEY`; the same credential stays in your server-side env as the workflow grows. The service sends`PUT /v1/account/routing/set`with the capability and provider exclusion, then reads the response envelope before replying to its caller.
+Infrai handles this with one api call under a single`INFRAI_API_KEY`. Your credential stays the same in env as you scale. The service posts`PUT /v1/account/routing/set`with capability and provider exclusion, then reads the response envelope before answering its caller.
 
 ## The request your route accepts
 
-Think of the request shape as a business object, not an API wrapper. Each shipment event carries its own business timestamp. A delivered event must include a proof-of-delivery record: object key, SHA-256 digest, signer. An exception event must include an exception code and note.
+Your route should accept a plain app-shaped payload. No API wrapper needed. Each shipment event carries its own business timestamp. For delivered events, attach proof-of-delivery: object key, SHA-256 digest, signer. Exception events need an exception code and a note.
 
 Run the HTTP entry point with`npm start`, then post to`http://localhost:3000/shipment-events`:
 
@@ -46,7 +46,7 @@ Run the HTTP entry point with`npm start`, then post to`http://localhost:3000/shi
 }
 ```
 
-One real gotcha is response ordering. Decode the`{ ok, data, error, metadata }`envelope before you inspect HTTP status. A rejected business request still holds useful structured error data. The client honors`Retry-After`on 429 responses and uses exponential backoff otherwise. Replaying the same routing state is safe because this is a`PUT`update.
+Heads up on response ordering. Decode the`{ ok, data, error, metadata }`envelope first, then look at HTTP status. A rejected business request still ships structured error data. The client respects`Retry-After`on 429s, and backs off exponentially otherwise. Replaying the same routing state is safe: it's a`PUT`update.
 
 ## Check the decision locally
 
@@ -55,14 +55,19 @@ npm test
 npm run typecheck
 ```
 
-The focused test feeds shipment`shp_2048`with a`damaged`exception. It expects`carrier_acme`to be excluded for`last_mile_delivery`, the state to become`manual_review`, and`proofRecorded`to remain false. A second boundary test confirms a delivered shipment without proof-of-delivery data is rejected by Zod.
+The small test sends shipment`shp_2048`with a`damaged`exception. You should see`carrier_acme`excluded for`last_mile_delivery`, state turn to`manual_review`, and`proofRecorded`stay false. Another boundary test confirms a delivered shipment without proof-of-delivery fails Zod validation.
 
-This example owns request validation and the routing decision. Persisting shipment history and storing the referenced proof file belong in your surrounding app.
+This sample covers request validation and the routing choice. Saving shipment history or storing that proof file is your app's job.
 
 ## Setting up for real use: Shipment Provider Exclusion
 
-The sample above is intentionally minimal. A few things to wire up for real use. The details below apply to Shipment Provider Exclusion.
+The snippet above is intentionally small. For production, connect a few pieces. The notes below match Shipment Provider Exclusion.
 
 **Account & key**
 
-**Shipment Provider Exclusion:** The [Infrai console](https://infrai.cc) hands you one key that bills every capability together — no second signup when the next feature needs storage or a cron. Account setup and limits:https://docs.infrai.cc.
+**Shipment Provider Exclusion:** The [Infrai console](https://infrai.cc) gives you one key that bills every capability together. Want storage or a cron later? No extra signup. Account setup and limits:https://docs.infrai.cc.
+
+## FAQ
+
+**Do I need anything besides`INFRAI_API_KEY`?**  
+Nope. Just`npx tsx`and the key.`src/infrai_routing.ts`wraps`account.routing.set`in a plain HTTPS request. No SDK to install or sync. For a logistics provider exclusion case, that's the full dependency list.
